@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ビンゴゲーム</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f0f8ff;
+        }
+        #bingo-board-container {
+            margin: 0 auto;
+            width: fit-content;
+        }
+        #bingo-header {
+            display: grid;
+            grid-template-columns: repeat(5, 60px);
+            gap: 10px;
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        #bingo-header span {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        #bingo-board {
+            display: grid;
+            grid-template-columns: repeat(5, 60px);
+            grid-template-rows: repeat(5, 60px);
+            gap: 10px;
+        }
+        .cell {
+            width: 60px;
+            height: 60px;
+            background-color: #e0e0e0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 20px;
+            cursor: pointer;
+            border-radius: 50%;
+            border: 1px solid #999;
+            background-image: radial-gradient(#ffcccb 10%, transparent 10%);
+            background-size: 15px 15px;
+            background-position: center;
+        }
+        .cell.selected {
+            background-color: #ffd700;
+            background-image: none;
+        }
+        #result {
+            margin-top: 20px;
+            font-size: 24px;
+            font-weight: bold;
+            color: green;
+        }
+    </style>
+</head>
+<body>
+    <h1>ビンゴゲーム</h1>
+    <div id="bingo-board-container">
+        <div id="bingo-header">
+            <span>B</span><span>I</span><span>N</span><span>G</span><span>O</span>
+        </div>
+        <div id="bingo-board"></div>
+    </div>
+    <div id="result"></div>
+    <button onclick="resetGame()">新しいビンゴカードを生成</button>
+
+    <script>
+        const BINGO_RANGES = {
+            B: [1, 15],
+            I: [16, 30],
+            N: [31, 45],
+            G: [46, 60],
+            O: [61, 75]
+        };
+        
+        const generatedCards = new Set();
+        
+        function generateUniqueCard() {
+            let card;
+            let cardHash;
+            do {
+                card = generateCardNumbers();
+                cardHash = hashCard(card);
+            } while (generatedCards.has(cardHash));
+            generatedCards.add(cardHash);
+            return card;
+        }
+        
+        function generateCardNumbers() {
+            const card = Array(5).fill(null).map(() => Array(5).fill(null));
+            Object.entries(BINGO_RANGES).forEach(([letter, range], colIndex) => {
+                const numbers = Array.from(
+                    { length: range[1] - range[0] + 1 },
+                    (_, i) => i + range[0]
+                ).sort(() => Math.random() - 0.5);
+                for (let rowIndex = 0; rowIndex < 5; rowIndex++) {
+                    card[rowIndex][colIndex] = rowIndex === 2 && colIndex === 2 ? null : numbers[rowIndex];
+                }
+            });
+            return card;
+        }
+        
+        function hashCard(card) {
+            return card.flat().map(num => num || 0).join('-');
+        }
+        
+        function renderBingoCard(card) {
+            const board = document.getElementById("bingo-board");
+            board.innerHTML = "";
+            card.flat().forEach((number, index) => {
+                const cell = document.createElement("div");
+                cell.classList.add("cell");
+                if (number !== null) {
+                    cell.textContent = number;
+                    cell.onclick = () => selectCell(cell);
+                } else {
+                    cell.textContent = "★";
+                    cell.classList.add("selected");
+                }
+                board.appendChild(cell);
+            });
+        }
+        
+        function selectCell(cell) {
+            cell.classList.toggle("selected");
+            checkBingo();
+        }
+        
+        function checkBingo() {
+            const cells = Array.from(document.getElementsByClassName("cell"));
+            const selected = cells.map(cell => cell.classList.contains("selected"));
+            let bingo = false;
+            for (let row = 0; row < 5; row++) {
+                if (selected.slice(row * 5, row * 5 + 5).every(Boolean)) {
+                    bingo = true;
+                }
+            }
+            for (let col = 0; col < 5; col++) {
+                if ([0, 1, 2, 3, 4].map(i => selected[i * 5 + col]).every(Boolean)) {
+                    bingo = true;
+                }
+            }
+            if ([0, 6, 12, 18, 24].map(i => selected[i]).every(Boolean)) {
+                bingo = true;
+            }
+            if ([4, 8, 12, 16, 20].map(i => selected[i]).every(Boolean)) {
+                bingo = true;
+            }
+            document.getElementById("result").textContent = bingo ? "ビンゴ！" : "";
+        }
+        
+        function resetGame() {
+            const card = generateUniqueCard();
+            renderBingoCard(card);
+            document.getElementById("result").textContent = "";
+        }
+        
+        window.onload = resetGame;
+    </script>
+</body>
+</html>
+
